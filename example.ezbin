@@ -1,0 +1,68 @@
+(This is a comment)
+(
+  Multi-line comments are allowed, and
+  even nested comments are legal (like this!)
+)
+
+(push integer)
+64
+64i
+64i32
+
+(integer types)
+80i32 (32-bit integer)
+80u32 (32-bit unsigned integer)
+80u8 (8-bit unsigned integer)
+80b (same as above)
+
+(
+  Note that
+  b = i8 & u8
+  s = i16 & u16
+  i = i32 & u32
+  l = i64 & u64
+
+  which means that
+  200b == -55b == 11001000
+)
+
+(push floating point numbers)
+10.0
+10.0f (single)
+10.0d (double)
+10.0f64 (same as above)
+
+(push string)
+"Hello World!" (UTF8, not sized nor null-terminated)
+"Hello World!" 0b (UTF8 'c string' (null-terminated))
+#"Hello World!" (UTF8, sized string)
+12i "Hello World!" (Same as above, but manual)
+
+(string types)
+"Utf8"UTF8
+"Ascii"ASCII
+"Utf16"UTF16
+
+(Blocks)
+#{
+  1b 2b 3b 4b
+} (pushes 32i 1b 2b 3b 4b)
+
+(Settings)
+[ENDIAN BIG] (or LITTLE or DEFAULT)
+
+[DEFAULT INTEGER i16] (or i8, i32, i64, u8, u16, u32, u64)
+(i and u remain aliases for i32 and u32)
+
+[DEFAILT FLOAT f64] (or f32)
+(f and d remain aliases for f32 and f64 respectively)
+
+[DEFAULT STRING ASCII] (or UTF8 or UTF16)
+
+(Nested settings)
+{
+  [DEFAULT INTEGER u8]
+  200 201 (pushes 200u8 200u8)
+}
+200 (pushes 200i32)
+
