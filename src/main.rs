@@ -3,6 +3,7 @@ use std::env;
 use std::fs;
 use std::thread;
 
+use std::process;
 use std::str::FromStr;
 use std::vec::IntoIter;
 
@@ -85,23 +86,37 @@ fn parse(mut code: String) -> Vec<u8> {
 
   let big_endian = true;
 
+  let mut in_string = false;
+  let mut string = String::from("");
+
   let mut in_value_start = true;
   let mut value_start = String::from("");
   let mut value_type = String::from("");
 
+  let mut last_c = '\0';
   for c in code.chars() {
-    if in_value_start {
+    if in_string {
+      if c == '"' {
+        value_type.push(c);
+        in_string = false;
+        in_value_start = false;
+      }else {
+        string.push(c);
+      }
+    }else if in_value_start {
       if (c >= '0' && c <= '9') || c == '-' || c == '+' {
         value_start.push(c);
+      }else if c == '"' {
+        in_string = true;
       }else {
         if c.is_whitespace() {
           continue;
           //in_value_start = false;
         }else {
           match c {
-            'i' => { in_value_start = false; },
+            'i' => { in_value_start = false; }
             'u' => { in_value_start = false; },
-            _ => { panic!("Unknown type initializer"); }
+            _ => { eprintln!("Unknown type initializer: {}", c); process::exit(2)}
           }
           value_type.push(c)
         }
@@ -175,16 +190,29 @@ fn parse(mut code: String) -> Vec<u8> {
             bs.into_iter()
               .for_each(|v| { bytes.push(v); });
           }
+          "\"UTF8" => {
+            if value_start.len() != 0 {
+              panic!("impropper use of strings");
+            }
+
+            let bs = string.bytes();
+            bytes.reserve(bs.len());
+            for b in bs {
+              bytes.push(b);
+            }
+          }
           _ => { panic!("Unknown type"); }
         }
 
         in_value_start = true;
         value_start = String::from("");
         value_type = String::from("");
+        string = String::from("");
       }else {
         value_type.push(c);
       }
     }
+    last_c = c;
   }
 
   return bytes;
