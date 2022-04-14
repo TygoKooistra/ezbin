@@ -5,7 +5,6 @@ use std::thread;
 
 use std::process;
 use std::str::FromStr;
-use std::vec::IntoIter;
 
 #[cfg(test)]
 mod tests;
@@ -86,6 +85,8 @@ fn parse(mut code: String) -> Vec<u8> {
 
   let big_endian = true;
 
+  let mut in_comment = 0;
+
   let mut in_string = false;
   let mut string = String::from("");
 
@@ -112,6 +113,10 @@ fn parse(mut code: String) -> Vec<u8> {
           string.push(c);
         }
       }
+    }else if c == '(' {
+      in_comment = in_comment + 1;
+    }else if in_comment > 0 {
+      if c == ')' { in_comment = in_comment - 1; }
     }else if in_value_start {
       if (c >= '0' && c <= '9') || c == '-' || c == '+' {
         value_start.push(c);
