@@ -4,7 +4,7 @@ use std::fs;
 use std::thread;
 
 use std::str::FromStr;
-
+use std::vec::IntoIter;
 
 #[cfg(test)]
 mod tests;
@@ -83,19 +83,23 @@ fn parse(mut code: String) -> Vec<u8> {
   code.push(' ');
   let mut bytes: Vec<u8> = Vec::new();
 
+  let big_endian = true;
+
   let mut in_value_start = true;
   let mut value_start = String::from("");
   let mut value_type = String::from("");
 
   for c in code.chars() {
     if in_value_start {
-      if c >= '0' && c <= '9' {
+      if (c >= '0' && c <= '9') || c == '-' || c == '+' {
         value_start.push(c);
       }else {
         if c.is_whitespace() {
-          in_value_start = false;
+          continue;
+          //in_value_start = false;
         }else {
           match c {
+            'i' => { in_value_start = false; },
             'u' => { in_value_start = false; },
             _ => { panic!("Unknown type initializer"); }
           }
@@ -110,6 +114,66 @@ fn parse(mut code: String) -> Vec<u8> {
               u8::from_str(value_start.as_str())
                 .expect("Number parsing error")
             );
+          },
+          "u16" => {
+            bytes.reserve(4);
+            let num = u16::from_str(value_start.as_str())
+              .expect("Number parsing error");
+            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+
+            bs.into_iter()
+              .for_each(|v| { bytes.push(v); });
+          }
+          "u32" => {
+            bytes.reserve(4);
+            let num = u32::from_str(value_start.as_str())
+              .expect("Number parsing error");
+            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+
+            bs.into_iter()
+              .for_each(|v| { bytes.push(v); });
+          }
+          "u64" => {
+            bytes.reserve(4);
+            let num = u64::from_str(value_start.as_str())
+              .expect("Number parsing error");
+            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+
+            bs.into_iter()
+              .for_each(|v| { bytes.push(v); });
+          }
+          "i8" => {
+            bytes.push(
+              i8::from_str(value_start.as_str())
+                .expect("Number parsing error") as u8
+            );
+          },
+          "i16" => {
+            bytes.reserve(4);
+            let num = i16::from_str(value_start.as_str())
+              .expect("Number parsing error");
+            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+
+            bs.into_iter()
+              .for_each(|v| { bytes.push(v); });
+          }
+          "i32" => {
+            bytes.reserve(4);
+            let num = i32::from_str(value_start.as_str())
+              .expect("Number parsing error");
+            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+
+            bs.into_iter()
+              .for_each(|v| { bytes.push(v); });
+          }
+          "i64" => {
+            bytes.reserve(4);
+            let num = i64::from_str(value_start.as_str())
+              .expect("Number parsing error");
+            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+
+            bs.into_iter()
+              .for_each(|v| { bytes.push(v); });
           }
           _ => { panic!("Unknown type"); }
         }
