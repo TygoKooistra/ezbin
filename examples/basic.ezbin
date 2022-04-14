@@ -8,5 +8,6 @@
 2000u32
 2000u64
 
-0u8
-"Hello World!"UTF8
+"Hello World!"ASCII
+"\\ \" \n"UTF8
+"Hello"UTF16

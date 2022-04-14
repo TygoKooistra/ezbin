@@ -96,12 +96,21 @@ fn parse(mut code: String) -> Vec<u8> {
   let mut last_c = '\0';
   for c in code.chars() {
     if in_string {
-      if c == '"' {
-        value_type.push(c);
-        in_string = false;
-        in_value_start = false;
-      }else {
-        string.push(c);
+      if last_c == '\\' {
+        match c {
+          '"' => { string.push('"'); },
+          '\\'=> { string.push('\\'); last_c='\0'; continue; },
+          'n' => { string.push('\n'); },
+          _ => { eprintln!("Escape character closed with '{}' (not recognized)", c); process::exit(1); }
+        }
+      }else if c != '\\' {
+        if c == '"' {
+          value_type.push(c);
+          in_string = false;
+          in_value_start = false;
+        }else {
+          string.push(c);
+        }
       }
     }else if in_value_start {
       if (c >= '0' && c <= '9') || c == '-' || c == '+' {
@@ -131,7 +140,7 @@ fn parse(mut code: String) -> Vec<u8> {
             );
           },
           "u16" => {
-            bytes.reserve(4);
+            bytes.reserve(2);
             let num = u16::from_str(value_start.as_str())
               .expect("Number parsing error");
             let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
@@ -149,7 +158,7 @@ fn parse(mut code: String) -> Vec<u8> {
               .for_each(|v| { bytes.push(v); });
           }
           "u64" => {
-            bytes.reserve(4);
+            bytes.reserve(8);
             let num = u64::from_str(value_start.as_str())
               .expect("Number parsing error");
             let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
@@ -164,7 +173,7 @@ fn parse(mut code: String) -> Vec<u8> {
             );
           },
           "i16" => {
-            bytes.reserve(4);
+            bytes.reserve(2);
             let num = i16::from_str(value_start.as_str())
               .expect("Number parsing error");
             let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
@@ -182,7 +191,7 @@ fn parse(mut code: String) -> Vec<u8> {
               .for_each(|v| { bytes.push(v); });
           }
           "i64" => {
-            bytes.reserve(4);
+            bytes.reserve(8);
             let num = i64::from_str(value_start.as_str())
               .expect("Number parsing error");
             let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
@@ -190,6 +199,7 @@ fn parse(mut code: String) -> Vec<u8> {
             bs.into_iter()
               .for_each(|v| { bytes.push(v); });
           }
+
           "\"UTF8" => {
             if value_start.len() != 0 {
               panic!("impropper use of strings");
@@ -199,6 +209,35 @@ fn parse(mut code: String) -> Vec<u8> {
             bytes.reserve(bs.len());
             for b in bs {
               bytes.push(b);
+            }
+          }
+          "\"ASCII" => {
+            if value_start.len() != 0 {
+              panic!("impropper use of strings");
+            }
+            if !string.is_ascii() {
+              eprintln!("String is not correct ascii ({})", string);
+              process::exit(2);
+            }
+
+            let bs = string.bytes();
+            bytes.reserve(bs.len());
+            for b in bs {
+              bytes.push(b);
+            }
+          }
+          "\"UTF16" => {
+            if value_start.len() != 0 {
+              panic!("impropper use of strings");
+            }
+
+            let utf16 = string.encode_utf16();
+            for c in utf16 {
+              bytes.reserve(2);
+              let bs = if big_endian { c.to_be_bytes() } else { c.to_be_bytes() };
+
+              bs.into_iter()
+                .for_each(|v| { bytes.push(v); });
             }
           }
           _ => { panic!("Unknown type"); }
