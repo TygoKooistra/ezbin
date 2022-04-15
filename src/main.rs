@@ -171,6 +171,10 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
                 "BIG" => { endianness = Endian::Big; }
                 "LITTLE" => { endianness = Endian::Little; }
                 "SYSTEM" => { endianness = Endian::Native; }
+                "SMALL" => {
+                  eprintln!("Endian type SMALL is incorrect, use LITTLE instead"); // Common mistake (by me)
+                  return Err(2);
+                }
                 _ => {
                   eprintln!("Unknown endian type {}, use BIG, LITTLE, DEFAULT or SYSTEM", value_type);
                   return Err(2);

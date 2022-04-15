@@ -86,3 +86,11 @@ fn test_defaults() {
   );
 }
 
+#[test]
+fn test_endian() {
+  assert_eq!(
+    test_example("./examples/endian"),
+    true
+  );
+}
+
