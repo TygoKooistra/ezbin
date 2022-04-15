@@ -96,13 +96,19 @@ fn load(args: Vec<String>) -> Result<(), i32> {
   Ok(())
 }
 
+enum Endian {
+  Big, Little, Native
+}
+
+
 fn parse(mut code: String) -> Result<Vec<u8>, i32> {
   code.push(' ');
   let mut bytes: Vec<u8> = Vec::new();
 
-  let big_endian = true;
+  let mut endianness = Endian::Big;
 
   let mut in_comment = 0;
+  let mut in_setting = false;
 
   let mut in_string = false;
   let mut string = String::from("");
@@ -137,6 +143,55 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
       in_comment = in_comment + 1;
     }else if in_comment > 0 {
       if c == ')' { in_comment = in_comment - 1; }
+    }else if c == '[' {
+      in_setting = true;
+      if !in_value_start {
+        eprintln!("Incorrect usage of settings");
+        return Err(2);
+      }
+    }else if in_setting {
+      if in_value_start {
+        if c.is_whitespace() {
+          in_value_start = false;
+        }else if c == ']' {
+          eprintln!("Cannot close setting without a value");
+          return Err(2);
+        }else {
+          value_start.push(c);
+        }
+      }else {
+        if c.is_whitespace() {
+          eprintln!("Errors should be ended with a ']' (no whitespace)");
+          return Err(2);
+        }else if c == ']' {
+          match value_start.as_str() {
+            "ENDIAN" => {
+              match value_type.as_str() {
+                "DEFAULT" => { endianness = Endian::Big; } // Always big, unless an argument said SMALL or SYSTEM
+                "BIG" => { endianness = Endian::Big; }
+                "LITTLE" => { endianness = Endian::Little; }
+                "SYSTEM" => { endianness = Endian::Native; }
+                _ => {
+                  eprintln!("Unknown endian type {}, use BIG, LITTLE, DEFAULT or SYSTEM", value_type);
+                  return Err(2);
+                }
+              }
+            }
+            _ => {
+              eprintln!("Unknown setting: {}", value_start);
+              return Err(2);
+            }
+          }
+
+          in_setting = false;
+          in_value_start = true;
+          value_start = String::from("");
+          value_type = String::from("");
+          string = String::from("");
+        }else {
+          value_type.push(c);
+        }
+      }
     }else if in_value_start {
       if (c >= '0' && c <= '9') || c == '-' || c == '+' || c == '.' {
         value_start.push(c);
@@ -175,7 +230,11 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
             bytes.reserve(2);
             let num = u16::from_str(value_start.as_str())
               .expect("Number parsing error");
-            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+            let bs = match endianness {
+              Endian::Big => num.to_be_bytes(),
+              Endian::Little => num.to_le_bytes(),
+              Endian::Native => num.to_ne_bytes()
+            };
 
             bs.into_iter()
               .for_each(|v| { bytes.push(v); });
@@ -184,7 +243,11 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
             bytes.reserve(4);
             let num = u32::from_str(value_start.as_str())
               .expect("Number parsing error");
-            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+            let bs = match endianness {
+              Endian::Big => num.to_be_bytes(),
+              Endian::Little => num.to_le_bytes(),
+              Endian::Native => num.to_ne_bytes()
+            };
 
             bs.into_iter()
               .for_each(|v| { bytes.push(v); });
@@ -193,7 +256,11 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
             bytes.reserve(8);
             let num = u64::from_str(value_start.as_str())
               .expect("Number parsing error");
-            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+            let bs = match endianness {
+              Endian::Big => num.to_be_bytes(),
+              Endian::Little => num.to_le_bytes(),
+              Endian::Native => num.to_ne_bytes()
+            };
 
             bs.into_iter()
               .for_each(|v| { bytes.push(v); });
@@ -208,7 +275,11 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
             bytes.reserve(2);
             let num = i16::from_str(value_start.as_str())
               .expect("Number parsing error");
-            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+            let bs = match endianness {
+              Endian::Big => num.to_be_bytes(),
+              Endian::Little => num.to_le_bytes(),
+              Endian::Native => num.to_ne_bytes()
+            };
 
             bs.into_iter()
               .for_each(|v| { bytes.push(v); });
@@ -217,7 +288,11 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
             bytes.reserve(4);
             let num = i32::from_str(value_start.as_str())
               .expect("Number parsing error");
-            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+            let bs = match endianness {
+              Endian::Big => num.to_be_bytes(),
+              Endian::Little => num.to_le_bytes(),
+              Endian::Native => num.to_ne_bytes()
+            };
 
             bs.into_iter()
               .for_each(|v| { bytes.push(v); });
@@ -226,7 +301,11 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
             bytes.reserve(8);
             let num = i64::from_str(value_start.as_str())
               .expect("Number parsing error");
-            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+            let bs = match endianness {
+              Endian::Big => num.to_be_bytes(),
+              Endian::Little => num.to_le_bytes(),
+              Endian::Native => num.to_ne_bytes()
+            };
 
             bs.into_iter()
               .for_each(|v| { bytes.push(v); });
@@ -236,7 +315,11 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
             bytes.reserve(4);
             let num = f32::from_str(value_start.as_str())
               .expect("Number parsing error");
-            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+            let bs = match endianness {
+              Endian::Big => num.to_be_bytes(),
+              Endian::Little => num.to_le_bytes(),
+              Endian::Native => num.to_ne_bytes()
+            };
 
             bs.into_iter()
               .for_each(|v| { bytes.push(v); });
@@ -245,7 +328,11 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
             bytes.reserve(8);
             let num = f64::from_str(value_start.as_str())
               .expect("Number parsing error");
-            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+            let bs = match endianness {
+              Endian::Big => num.to_be_bytes(),
+              Endian::Little => num.to_le_bytes(),
+              Endian::Native => num.to_ne_bytes()
+            };
 
             bs.into_iter()
               .for_each(|v| { bytes.push(v); });
@@ -288,7 +375,11 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
             let utf16 = string.encode_utf16();
             for c in utf16 {
               bytes.reserve(2);
-              let bs = if big_endian { c.to_be_bytes() } else { c.to_be_bytes() };
+              let bs = match endianness {
+                Endian::Big => c.to_be_bytes(),
+                Endian::Little => c.to_le_bytes(),
+                Endian::Native => c.to_ne_bytes()
+              };
 
               bs.into_iter()
                 .for_each(|v| { bytes.push(v); });

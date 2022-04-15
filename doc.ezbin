@@ -49,7 +49,7 @@
 } (pushes 32i 1b 2b 3b 4b)
 
 (Settings)
-[ENDIAN BIG] (or LITTLE or DEFAULT)
+[ENDIAN BIG] (or LITTLE, DEFAULT or SYSTEM)
 
 [DEFAULT INTEGER i16] (or i8, i32, i64, u8, u16, u32, u64)
 (i and u remain aliases for i32 and u32)
