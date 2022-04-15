@@ -25,7 +25,15 @@ fn main() {
     print_usage();
     return;
   }
+  process::exit(
+    match load(args) {
+      Ok(_) => 0,
+      Err(err) => err
+    }
+  )
+}
 
+fn load(args: Vec<String>) -> Result<(), i32> {
 
   let mut to_load: Vec<String> = Vec::new();
   let mut output_file: String = String::from("");
@@ -34,7 +42,7 @@ fn main() {
   for arg in args {
     if arg == "--help" {
       print_usage();
-      return;
+      return Ok(());
     }else if last_arg == "-o" {
       output_file = arg;
       
@@ -50,10 +58,11 @@ fn main() {
   }
 
   if output_file.len() == 0 {
-    panic!("Please specify an output file with -o");
+    eprintln!("Please specify an output file with -o");
+    return Err(2);
   }
   
-  let mut threads: Vec<thread::JoinHandle<Vec<u8>>> = Vec::new();
+  let mut threads: Vec<thread::JoinHandle<Result<Vec<u8>, i32>>> = Vec::new();
 
   for file in to_load {
     threads.push(
@@ -70,16 +79,24 @@ fn main() {
 
   let mut file = fs::File::create(output_file).expect("Could not open the output file");
   for t in threads {
-    let bytes = t.join().expect("Internal error while parsing file");
+    let result = t.join()
+      .expect("Internal error while parsing file");
+    
+    if result.is_err() {
+      return Err(result.err().unwrap());
+    }
+    let bytes = result.unwrap();
+
     written = written + bytes.len();
 
     file.write_all(bytes.as_slice()).expect("Could not write to the output file");
   }
 
   println!("Wrote {} bytes", written);
+  Ok(())
 }
 
-fn parse(mut code: String) -> Vec<u8> {
+fn parse(mut code: String) -> Result<Vec<u8>, i32> {
   code.push(' ');
   let mut bytes: Vec<u8> = Vec::new();
 
@@ -102,7 +119,10 @@ fn parse(mut code: String) -> Vec<u8> {
           '"' => { string.push('"'); },
           '\\'=> { string.push('\\'); last_c='\0'; continue; },
           'n' => { string.push('\n'); },
-          _ => { eprintln!("Escape character closed with '{}' (not recognized)", c); process::exit(1); }
+          _ => {
+            eprintln!("Escape character closed with '{}' (not recognized)", c);
+            return Err(2);
+          }
         }
       }else if c != '\\' {
         if c == '"' {
@@ -141,6 +161,7 @@ fn parse(mut code: String) -> Vec<u8> {
           "u" => String::from( "u32" ),
           "f" => String::from( "f32" ),
           "d" => String::from( "f64" ),
+          "\""=> String::from( "\"UTF8" ),
           _ => value_type
         };
         match real_type.as_str() {
@@ -232,7 +253,8 @@ fn parse(mut code: String) -> Vec<u8> {
 
           "\"UTF8" => {
             if value_start.len() != 0 {
-              panic!("impropper use of strings");
+              eprintln!("impropper use of strings");
+              return Err(2);
             }
 
             let bs = string.bytes();
@@ -243,11 +265,12 @@ fn parse(mut code: String) -> Vec<u8> {
           }
           "\"ASCII" => {
             if value_start.len() != 0 {
-              panic!("impropper use of strings");
+              eprintln!("impropper use of strings");
+              return Err(2);
             }
             if !string.is_ascii() {
               eprintln!("String is not correct ascii ({})", string);
-              process::exit(2);
+              return Err(2);
             }
 
             let bs = string.bytes();
@@ -258,7 +281,8 @@ fn parse(mut code: String) -> Vec<u8> {
           }
           "\"UTF16" => {
             if value_start.len() != 0 {
-              panic!("impropper use of strings");
+              eprintln!("impropper use of strings");
+              return Err(2);
             }
 
             let utf16 = string.encode_utf16();
@@ -270,7 +294,10 @@ fn parse(mut code: String) -> Vec<u8> {
                 .for_each(|v| { bytes.push(v); });
             }
           }
-          _ => { panic!("Unknown type"); }
+          v => {
+            eprintln!("Unknown type {}", v);
+            return Err(2);
+          }
         }
 
         in_value_start = true;
@@ -284,5 +311,5 @@ fn parse(mut code: String) -> Vec<u8> {
     last_c = c;
   }
 
-  return bytes;
+  return Ok(bytes);
 }
