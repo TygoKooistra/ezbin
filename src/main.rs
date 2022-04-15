@@ -12,8 +12,8 @@ mod tests;
 
 fn print_usage() {
   print!("EZbin usage:
-<filename>    Load a file into the processing queue
--o <filename> Set output file
+  <filename>    Load a file into the processing queue
+  -o <filename> Set output file
 ");
 }
 
@@ -118,7 +118,7 @@ fn parse(mut code: String) -> Vec<u8> {
     }else if in_comment > 0 {
       if c == ')' { in_comment = in_comment - 1; }
     }else if in_value_start {
-      if (c >= '0' && c <= '9') || c == '-' || c == '+' {
+      if (c >= '0' && c <= '9') || c == '-' || c == '+' || c == '.' {
         value_start.push(c);
       }else if c == '"' {
         in_string = true;
@@ -127,17 +127,23 @@ fn parse(mut code: String) -> Vec<u8> {
           continue;
           //in_value_start = false;
         }else {
-          match c {
-            'i' => { in_value_start = false; }
-            'u' => { in_value_start = false; },
-            _ => { eprintln!("Unknown type initializer: {}", c); process::exit(2)}
-          }
+          in_value_start = false;
           value_type.push(c)
         }
       }
     }else {
       if c.is_whitespace() {
-        match value_type.as_str() {
+        let real_type: String = match value_type.as_str() {
+          "b" => String::from( "u8" ),
+          "s" => String::from( "i16" ),
+          "i" => String::from( "i32" ),
+          "l" => String::from( "i64" ),
+          "u" => String::from( "u32" ),
+          "f" => String::from( "f32" ),
+          "d" => String::from( "f64" ),
+          _ => value_type
+        };
+        match real_type.as_str() {
           "u8" => {
             bytes.push(
               u8::from_str(value_start.as_str())
@@ -198,6 +204,25 @@ fn parse(mut code: String) -> Vec<u8> {
           "i64" => {
             bytes.reserve(8);
             let num = i64::from_str(value_start.as_str())
+              .expect("Number parsing error");
+            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+
+            bs.into_iter()
+              .for_each(|v| { bytes.push(v); });
+          }
+
+          "f32" => {
+            bytes.reserve(4);
+            let num = f32::from_str(value_start.as_str())
+              .expect("Number parsing error");
+            let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
+
+            bs.into_iter()
+              .for_each(|v| { bytes.push(v); });
+          }
+          "f64" => {
+            bytes.reserve(8);
+            let num = f64::from_str(value_start.as_str())
               .expect("Number parsing error");
             let bs = if big_endian { num.to_be_bytes() } else { num.to_be_bytes() };
 

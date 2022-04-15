@@ -8,6 +8,13 @@
 2000u32
 2000u64
 
+30.0f32
+30.0f64
+
 "Hello World!"ASCII
 "\\ \" \n"UTF8
 "Hello"UTF16
+
+(Comment)
+( here (Nested Comment)
+AND multi-line! )
