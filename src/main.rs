@@ -107,6 +107,8 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
 
   let mut endianness = Endian::Big;
 
+  let mut type_auto = String::from("i32");
+
   let mut in_comment = 0;
   let mut in_setting = false;
 
@@ -181,6 +183,9 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
                 }
               }
             }
+            "AUTO" => {
+              type_auto = value_type.clone();
+            }
             _ => {
               eprintln!("Unknown setting: {}", value_start);
               return Err(2);
@@ -217,7 +222,7 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
             "f" => String::from( "f32" ),
             "d" => String::from( "f64" ),
             "\""=> String::from( "\"UTF8" ),
-            ""  => String::from( "i32" ),
+            ""  => type_auto.clone(),
             _ => value_type
           };
           match real_type.as_str() {

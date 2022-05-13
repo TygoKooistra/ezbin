@@ -5,4 +5,9 @@
 
 200u (u32)
 -200 (i32)
-"Hello World!"
+"Hello World!" (UTF8)
+
+[AUTO f64]
+-200 (f64)
+-200f (f32) (does not change by AUTO)
+
