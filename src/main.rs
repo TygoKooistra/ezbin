@@ -15,6 +15,7 @@ fn print_usage() {
   print!("EZbin usage:
   <filename>    Load a file into the processing queue
   -o <filename> Set output file
+  -v            Print version and exit
 ");
 }
 
@@ -25,6 +26,12 @@ fn main() {
   if args.len() == 0 {
     print_usage();
     return;
+  }
+  for a in &args {
+    if a == "-v" {
+      println!("ezbin version {}", env!("CARGO_PKG_VERSION"));
+      return;
+    }
   }
   process::exit(
     match load(args) {
@@ -131,7 +138,7 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
     (String::from("i"), String::from("i32")),
     (String::from("l"), String::from("i64")),
     (String::from("u"), String::from("u32")),
-    
+
     (String::from("f"), String::from("f32")),
     (String::from("d"), String::from("f64"))
   ]);
