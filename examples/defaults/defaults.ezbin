@@ -3,6 +3,9 @@
 3i (i32)
 4l (i64)
 
+5f (f32)
+6d (f64)
+
 200u (u32)
 -200 (i32)
 "Hello World!" (UTF8)
@@ -11,3 +14,5 @@
 -200 (f64)
 -200f (f32) (does not change by AUTO)
 
+[int i64]
+1234567890int

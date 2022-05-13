@@ -3,6 +3,7 @@ use std::env;
 use std::fs;
 use std::thread;
 
+use std::collections::HashMap;
 use std::process;
 use std::str::FromStr;
 
@@ -101,6 +102,22 @@ enum Endian {
 }
 
 
+fn is_absolute(t: &String) -> bool {
+     t.eq("u8")
+  || t.eq("u16")
+  || t.eq("u32")
+  || t.eq("u64")
+  || t.eq("i8")
+  || t.eq("i16")
+  || t.eq("i32")
+  || t.eq("i64")
+  || t.eq("f32")
+  || t.eq("f64")
+  || t.eq("\"UTF8")
+  || t.eq("\"ASCII")
+  || t.eq("\"UTF16")
+}
+
 fn parse(mut code: String) -> Result<Vec<u8>, i32> {
   code.push(' ');
   let mut bytes: Vec<u8> = Vec::new();
@@ -108,6 +125,16 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
   let mut endianness = Endian::Big;
 
   let mut type_auto = String::from("i32");
+  let mut custom_types = HashMap::from([
+    (String::from("b"), String::from("u8" )),
+    (String::from("s"), String::from("i16")),
+    (String::from("i"), String::from("i32")),
+    (String::from("l"), String::from("i64")),
+    (String::from("u"), String::from("u32")),
+    
+    (String::from("f"), String::from("f32")),
+    (String::from("d"), String::from("f64"))
+  ]);
 
   let mut in_comment = 0;
   let mut in_setting = false;
@@ -187,8 +214,15 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
               type_auto = value_type.clone();
             }
             _ => {
-              eprintln!("Unknown setting: {}", value_start);
-              return Err(2);
+              if value_start != value_start.to_lowercase() {
+                eprintln!("Unknown setting: {}", value_start);
+                return Err(2);
+              }else if is_absolute(&value_start) {
+                eprintln!("Cannot set absolute types ({})", value_start);
+                return Err(2);
+              }else {
+                custom_types.insert(value_start, value_type);
+              }
             }
           }
 
@@ -214,16 +248,26 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
       if c.is_whitespace() {
         if !(value_type == "" && value_start.len() == 0) {
           let real_type: String = match value_type.as_str() {
-            "b" => String::from( "u8" ),
-            "s" => String::from( "i16" ),
-            "i" => String::from( "i32" ),
-            "l" => String::from( "i64" ),
-            "u" => String::from( "u32" ),
-            "f" => String::from( "f32" ),
-            "d" => String::from( "f64" ),
             "\""=> String::from( "\"UTF8" ),
-            ""  => type_auto.clone(),
-            _ => value_type
+            _ => {
+              let mut t: String = if value_type.len()==0
+                {type_auto.clone()}
+              else
+                {value_type.clone()};
+              
+              loop {
+                if is_absolute(&t) {
+                  break t;
+                }
+                
+                if custom_types.contains_key(&t) {
+                  t = custom_types[&t].clone();
+                }else {
+                  eprintln!("Unknown type {}", t);
+                  return Err(2);
+                }
+              }
+            }
           };
           match real_type.as_str() {
             "u8" => {
@@ -391,9 +435,9 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
                   .for_each(|v| { bytes.push(v); });
               }
             }
-            v => {
-              eprintln!("Unknown type {}", v);
-              return Err(2);
+            _ => {
+              eprintln!("Unreachable");
+              return Err(4);
             }
           }
         }

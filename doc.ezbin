@@ -51,17 +51,13 @@
 (Settings)
 [ENDIAN BIG] (or LITTLE, DEFAULT or SYSTEM)
 
-[DEFAULT INTEGER i16] (or i8, i32, i64, u8, u16, u32, u64)
-(i and u remain aliases for i32 and u32)
-
-[DEFAILT FLOAT f64] (or f32)
-(f and d remain aliases for f32 and f64 respectively)
+[AUTO i16] (or i8, i32, i64, u8, u16, u32, u64, f32, f64)
 
 [DEFAULT STRING ASCII] (or UTF8 or UTF16)
 
 (Nested settings)
 {
-  [DEFAULT INTEGER u8]
+  [AUTO u8]
   200 201 (pushes 200u8 200u8)
 }
 200 (pushes 200i32)
