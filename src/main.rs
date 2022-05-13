@@ -196,202 +196,200 @@ fn parse(mut code: String) -> Result<Vec<u8>, i32> {
           value_type.push(c);
         }
       }
-    }else if in_value_start {
+    }else if in_value_start && !c.is_whitespace() {
       if (c >= '0' && c <= '9') || c == '-' || c == '+' || c == '.' {
         value_start.push(c);
       }else if c == '"' {
         in_string = true;
       }else {
-        if c.is_whitespace() {
-          continue;
-          //in_value_start = false;
-        }else {
-          in_value_start = false;
-          value_type.push(c)
-        }
+        in_value_start = false;
+        value_type.push(c)
       }
     }else {
       if c.is_whitespace() {
-        let real_type: String = match value_type.as_str() {
-          "b" => String::from( "u8" ),
-          "s" => String::from( "i16" ),
-          "i" => String::from( "i32" ),
-          "l" => String::from( "i64" ),
-          "u" => String::from( "u32" ),
-          "f" => String::from( "f32" ),
-          "d" => String::from( "f64" ),
-          "\""=> String::from( "\"UTF8" ),
-          _ => value_type
-        };
-        match real_type.as_str() {
-          "u8" => {
-            bytes.push(
-              u8::from_str(value_start.as_str())
-                .expect("Number parsing error")
-            );
-          },
-          "u16" => {
-            bytes.reserve(2);
-            let num = u16::from_str(value_start.as_str())
-              .expect("Number parsing error");
-            let bs = match endianness {
-              Endian::Big => num.to_be_bytes(),
-              Endian::Little => num.to_le_bytes(),
-              Endian::Native => num.to_ne_bytes()
-            };
-
-            bs.into_iter()
-              .for_each(|v| { bytes.push(v); });
-          }
-          "u32" => {
-            bytes.reserve(4);
-            let num = u32::from_str(value_start.as_str())
-              .expect("Number parsing error");
-            let bs = match endianness {
-              Endian::Big => num.to_be_bytes(),
-              Endian::Little => num.to_le_bytes(),
-              Endian::Native => num.to_ne_bytes()
-            };
-
-            bs.into_iter()
-              .for_each(|v| { bytes.push(v); });
-          }
-          "u64" => {
-            bytes.reserve(8);
-            let num = u64::from_str(value_start.as_str())
-              .expect("Number parsing error");
-            let bs = match endianness {
-              Endian::Big => num.to_be_bytes(),
-              Endian::Little => num.to_le_bytes(),
-              Endian::Native => num.to_ne_bytes()
-            };
-
-            bs.into_iter()
-              .for_each(|v| { bytes.push(v); });
-          }
-          "i8" => {
-            bytes.push(
-              i8::from_str(value_start.as_str())
-                .expect("Number parsing error") as u8
-            );
-          },
-          "i16" => {
-            bytes.reserve(2);
-            let num = i16::from_str(value_start.as_str())
-              .expect("Number parsing error");
-            let bs = match endianness {
-              Endian::Big => num.to_be_bytes(),
-              Endian::Little => num.to_le_bytes(),
-              Endian::Native => num.to_ne_bytes()
-            };
-
-            bs.into_iter()
-              .for_each(|v| { bytes.push(v); });
-          }
-          "i32" => {
-            bytes.reserve(4);
-            let num = i32::from_str(value_start.as_str())
-              .expect("Number parsing error");
-            let bs = match endianness {
-              Endian::Big => num.to_be_bytes(),
-              Endian::Little => num.to_le_bytes(),
-              Endian::Native => num.to_ne_bytes()
-            };
-
-            bs.into_iter()
-              .for_each(|v| { bytes.push(v); });
-          }
-          "i64" => {
-            bytes.reserve(8);
-            let num = i64::from_str(value_start.as_str())
-              .expect("Number parsing error");
-            let bs = match endianness {
-              Endian::Big => num.to_be_bytes(),
-              Endian::Little => num.to_le_bytes(),
-              Endian::Native => num.to_ne_bytes()
-            };
-
-            bs.into_iter()
-              .for_each(|v| { bytes.push(v); });
-          }
-
-          "f32" => {
-            bytes.reserve(4);
-            let num = f32::from_str(value_start.as_str())
-              .expect("Number parsing error");
-            let bs = match endianness {
-              Endian::Big => num.to_be_bytes(),
-              Endian::Little => num.to_le_bytes(),
-              Endian::Native => num.to_ne_bytes()
-            };
-
-            bs.into_iter()
-              .for_each(|v| { bytes.push(v); });
-          }
-          "f64" => {
-            bytes.reserve(8);
-            let num = f64::from_str(value_start.as_str())
-              .expect("Number parsing error");
-            let bs = match endianness {
-              Endian::Big => num.to_be_bytes(),
-              Endian::Little => num.to_le_bytes(),
-              Endian::Native => num.to_ne_bytes()
-            };
-
-            bs.into_iter()
-              .for_each(|v| { bytes.push(v); });
-          }
-
-          "\"UTF8" => {
-            if value_start.len() != 0 {
-              eprintln!("impropper use of strings");
-              return Err(2);
-            }
-
-            let bs = string.bytes();
-            bytes.reserve(bs.len());
-            for b in bs {
-              bytes.push(b);
-            }
-          }
-          "\"ASCII" => {
-            if value_start.len() != 0 {
-              eprintln!("impropper use of strings");
-              return Err(2);
-            }
-            if !string.is_ascii() {
-              eprintln!("String is not correct ascii ({})", string);
-              return Err(2);
-            }
-
-            let bs = string.bytes();
-            bytes.reserve(bs.len());
-            for b in bs {
-              bytes.push(b);
-            }
-          }
-          "\"UTF16" => {
-            if value_start.len() != 0 {
-              eprintln!("impropper use of strings");
-              return Err(2);
-            }
-
-            let utf16 = string.encode_utf16();
-            for c in utf16 {
+        if !(value_type == "" && value_start.len() == 0) {
+          let real_type: String = match value_type.as_str() {
+            "b" => String::from( "u8" ),
+            "s" => String::from( "i16" ),
+            "i" => String::from( "i32" ),
+            "l" => String::from( "i64" ),
+            "u" => String::from( "u32" ),
+            "f" => String::from( "f32" ),
+            "d" => String::from( "f64" ),
+            "\""=> String::from( "\"UTF8" ),
+            ""  => String::from( "i32" ),
+            _ => value_type
+          };
+          match real_type.as_str() {
+            "u8" => {
+              bytes.push(
+                u8::from_str(value_start.as_str())
+                  .expect("Number parsing error")
+              );
+            },
+            "u16" => {
               bytes.reserve(2);
+              let num = u16::from_str(value_start.as_str())
+                .expect("Number parsing error");
               let bs = match endianness {
-                Endian::Big => c.to_be_bytes(),
-                Endian::Little => c.to_le_bytes(),
-                Endian::Native => c.to_ne_bytes()
+                Endian::Big => num.to_be_bytes(),
+                Endian::Little => num.to_le_bytes(),
+                Endian::Native => num.to_ne_bytes()
               };
 
               bs.into_iter()
                 .for_each(|v| { bytes.push(v); });
             }
-          }
-          v => {
-            eprintln!("Unknown type {}", v);
-            return Err(2);
+            "u32" => {
+              bytes.reserve(4);
+              let num = u32::from_str(value_start.as_str())
+                .expect("Number parsing error");
+              let bs = match endianness {
+                Endian::Big => num.to_be_bytes(),
+                Endian::Little => num.to_le_bytes(),
+                Endian::Native => num.to_ne_bytes()
+              };
+
+              bs.into_iter()
+                .for_each(|v| { bytes.push(v); });
+            }
+            "u64" => {
+              bytes.reserve(8);
+              let num = u64::from_str(value_start.as_str())
+                .expect("Number parsing error");
+              let bs = match endianness {
+                Endian::Big => num.to_be_bytes(),
+                Endian::Little => num.to_le_bytes(),
+                Endian::Native => num.to_ne_bytes()
+              };
+
+              bs.into_iter()
+                .for_each(|v| { bytes.push(v); });
+            }
+            "i8" => {
+              bytes.push(
+                i8::from_str(value_start.as_str())
+                  .expect("Number parsing error") as u8
+              );
+            },
+            "i16" => {
+              bytes.reserve(2);
+              let num = i16::from_str(value_start.as_str())
+                .expect("Number parsing error");
+              let bs = match endianness {
+                Endian::Big => num.to_be_bytes(),
+                Endian::Little => num.to_le_bytes(),
+                Endian::Native => num.to_ne_bytes()
+              };
+
+              bs.into_iter()
+                .for_each(|v| { bytes.push(v); });
+            }
+            "i32" => {
+              bytes.reserve(4);
+              let num = i32::from_str(value_start.as_str())
+                .expect("Number parsing error");
+              let bs = match endianness {
+                Endian::Big => num.to_be_bytes(),
+                Endian::Little => num.to_le_bytes(),
+                Endian::Native => num.to_ne_bytes()
+              };
+
+              bs.into_iter()
+                .for_each(|v| { bytes.push(v); });
+            }
+            "i64" => {
+              bytes.reserve(8);
+              let num = i64::from_str(value_start.as_str())
+                .expect("Number parsing error");
+              let bs = match endianness {
+                Endian::Big => num.to_be_bytes(),
+                Endian::Little => num.to_le_bytes(),
+                Endian::Native => num.to_ne_bytes()
+              };
+
+              bs.into_iter()
+                .for_each(|v| { bytes.push(v); });
+            }
+
+            "f32" => {
+              bytes.reserve(4);
+              let num = f32::from_str(value_start.as_str())
+                .expect("Number parsing error");
+              let bs = match endianness {
+                Endian::Big => num.to_be_bytes(),
+                Endian::Little => num.to_le_bytes(),
+                Endian::Native => num.to_ne_bytes()
+              };
+
+              bs.into_iter()
+                .for_each(|v| { bytes.push(v); });
+            }
+            "f64" => {
+              bytes.reserve(8);
+              let num = f64::from_str(value_start.as_str())
+                .expect("Number parsing error");
+              let bs = match endianness {
+                Endian::Big => num.to_be_bytes(),
+                Endian::Little => num.to_le_bytes(),
+                Endian::Native => num.to_ne_bytes()
+              };
+
+              bs.into_iter()
+                .for_each(|v| { bytes.push(v); });
+            }
+
+            "\"UTF8" => {
+              if value_start.len() != 0 {
+                eprintln!("impropper use of strings");
+                return Err(2);
+              }
+
+              let bs = string.bytes();
+              bytes.reserve(bs.len());
+              for b in bs {
+                bytes.push(b);
+              }
+            }
+            "\"ASCII" => {
+              if value_start.len() != 0 {
+                eprintln!("impropper use of strings");
+                return Err(2);
+              }
+              if !string.is_ascii() {
+                eprintln!("String is not correct ascii ({})", string);
+                return Err(2);
+              }
+
+              let bs = string.bytes();
+              bytes.reserve(bs.len());
+              for b in bs {
+                bytes.push(b);
+              }
+            }
+            "\"UTF16" => {
+              if value_start.len() != 0 {
+                eprintln!("impropper use of strings");
+                return Err(2);
+              }
+
+              let utf16 = string.encode_utf16();
+              for c in utf16 {
+                bytes.reserve(2);
+                let bs = match endianness {
+                  Endian::Big => c.to_be_bytes(),
+                  Endian::Little => c.to_le_bytes(),
+                  Endian::Native => c.to_ne_bytes()
+                };
+
+                bs.into_iter()
+                  .for_each(|v| { bytes.push(v); });
+              }
+            }
+            v => {
+              eprintln!("Unknown type {}", v);
+              return Err(2);
+            }
           }
         }
 
