@@ -41,7 +41,7 @@ Set the endianness (default is big):
 # Build
 download the project
 or use the git CLI:
-* git clone TODOthisrepo
+* git clone https://github.com/TygoKooistra/ezbin
 
 build using cargo:
 * cargo build -r
