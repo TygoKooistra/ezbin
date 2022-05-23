@@ -1,19 +1,19 @@
 (ENDIAN DEFAULT is default of course ;} (can't use regular smiley ;) )
 
 (Same as DEFAULT, is BIG unless specified otherwise by command line arguments)
-258u16 (00000001 00000002)
+258u16 (00000001 00000010)
 
 [ENDIAN BIG]
-258u16 (00000001 00000002)
+258u16 (00000001 00000010)
 
 [ENDIAN LITTLE]
-258u16 (00000002 00000001)
+258u16 (00000010 00000001)
 
 [ENDIAN DEFAULT]
-258u16 (00000001 00000002)
+258u16 (00000001 00000010)
 
 (
   (These are bad for testing because it is system dependent (which is the goal of ENDIAN SYSTEM))
   [ENDIAN SYSTEM]
-  258u16 (0000000? 0000000?)
+  258u16 (000000?? 000000??)
 )
